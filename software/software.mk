@@ -32,10 +32,12 @@ INCLUDE+=$(incdir)$(LIB_DIR)/software/include
 #headers
 HDR=$(SW_DIR)/system.h periphs.h
 
+include $(VERSAT_DIR)/sharedHardware.mk
+
 VERSAT_EXE:=$(VERSAT_DIR)/versat
 
 ifeq ($(TEST),)
-TYPE_NAME:=SMVMCPU
+TYPE_NAME:=fpu
 FIRMWARE:=$(FIRM_DIR)/firmware.c
 COMPILER:=gcc
 else
@@ -48,6 +50,9 @@ else
 	COMPILER:=g++
 endif
 endif
+
+VERSAT_THIS_HARDWARE := $(SHARED_HARDWARE) $(HW_DIR)/src/units/unum4_fpu.v
+VERSAT_THIS_INCLUDE :=  -I $(VERSAT_DIR)/hardware/include -I $(HW_DIR)/include -I $(HW_DIR)/src/units
 
 versat:
 	$(MAKE) -C $(VERSAT_DIR) versat

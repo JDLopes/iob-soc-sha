@@ -52,7 +52,7 @@ DEFINE+=$(defmacro)DDR_ADDR_W=$(DDR_ADDR_W)
 DEFINE+=$(defmacro)AXI_ADDR_W=32
 
 #INCLUDES
-INCLUDE+=$(incdir). $(incdir)$(INC_DIR) $(incdir)$(LIB_DIR)/hardware/include
+INCLUDE+=$(incdir). $(incdir)$(INC_DIR) $(incdir)$(LIB_DIR)/hardware/include $(incdir)$(HW_DIR)/src/units
 
 #HEADERS
 VHDR+=$(INC_DIR)/system.vh $(LIB_DIR)/hardware/include/iob_intercon.vh

@@ -52,23 +52,17 @@ int main(int argc,char* argv[]){
 
    versat_init(VERSAT_BASE);
 
-   printf("%x\n",&ACCEL_TOP_input_0_constant);
-
-   ACCEL_TOP_input_0_constant = PackInt(1.1);
-   ACCEL_TOP_input_1_constant = PackInt(2);
-
-   RunAccelerator(1);
-
-   printf("%f\n",UnpackInt(ACCEL_TOP_output_0_currentValue));
-   /*
-   ACCEL_TOP_input_0_constant = 100;
-   ACCEL_TOP_input_1_constant = 20;
-   ACCEL_TOP_input_2_constant = 3;
+   // Configuration (only write to these)
+   ACCEL_TOP_input_0_constant = 0x1;
+   ACCEL_TOP_input_1_constant = 0x2;
+   ACCEL_TOP_simple_op = 0;
 
    RunAccelerator(1);
 
-   printf("%d\n",ACCEL_TOP_output_0_currentValue);
-   */
+   printf("Result: %x\n",ACCEL_TOP_output_0_currentValue);
+   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
+   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
+   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
 
    uart_finish();
 
