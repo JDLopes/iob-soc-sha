@@ -4,7 +4,8 @@ ROOT_DIR:=../..
 
 DEBUG_GUI := 0
 
-LOCAL_CFLAGS := -Wall -g -Werror=return-type -march=native -DVERSAT_DEBUG
+#LOCAL_CFLAGS := -Wall -g -Werror=return-type -march=native -DVERSAT_DEBUG
+LOCAL_CFLAGS := --lint-only -g -Werror=return-type -march=native -DVERSAT_DEBUG
 GLOBAL_CFLAGS:= $(LOCAL_CFLAGS) -std=c++17 #-fsanitize=address #-msse2
 
 ifeq ($(DEBUG_GUI),1)
@@ -25,7 +26,7 @@ ETH_LOG:=ethernet.log
 EMUL_PROFILE_LOG:=emul_profile.log
 
 #SUBMODULES
-VERSAT_SPEC_INCLUDE:=-I ./generated -I ./build -I ./src
+VERSAT_SPEC_INCLUDE:=-I ./generated -I ./build -I ./src -I ../hardware/src/units
 
 #peripherals (pc)
 $(foreach p, $(PERIPHERALS), $(eval include $($p_DIR)/software/pc-emul/pc-emul.mk))
@@ -112,7 +113,7 @@ run-versat:
 	$(MAKE) -C $(VERSAT_DIR) versat
 
 $(OUTPUT_FOLDER)/accel.hpp: run-versat $(VERSAT_DIR)/versat
-	$(VERSAT_DIR)/versat $(SHARED_HARDWARE) $(HW_DIR)/src/units/*.v -I $(VERSAT_DIR)/hardware/include testVersatSpecification.txt -s -T UnumIV -o ./generated/
+	$(VERSAT_DIR)/versat $(SHARED_HARDWARE) $(HW_DIR)/src/units/*.v -I $(HW_DIR)/src/units/ -I $(VERSAT_DIR)/hardware/include testVersatSpecification.txt -s -T fpu -S unum4_adder -S unum4_addsub -S unum4_bs -S unum4_clz -S unum4_div_unum4_subshift -S unum4_divide -S expdiff  -S unum4_mult -S unum4_pack0 -S unum4_unpack -o ./generated/
 	$(MAKE) -C $(OUTPUT_FOLDER) all
 	cp $(OUTPUT_FOLDER)/accel.hpp $(FIRM_DIR)/accel.hpp
 
