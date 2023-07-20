@@ -52,14 +52,58 @@ int main(int argc,char* argv[]){
 
    versat_init(VERSAT_BASE);
 
-   // Configuration (only write to these)
-   ACCEL_TOP_input_0_constant = 0x1;
-   ACCEL_TOP_input_1_constant = 0x2;
+   // Addition
+   printf("\nAddition\n\n");
+
+   ACCEL_TOP_input_0_constant = 0xc0000001;
+   ACCEL_TOP_input_1_constant = 0xa0000002;
    ACCEL_TOP_simple_op = 0;
 
    RunAccelerator(1);
 
-   printf("Result: %x\n",ACCEL_TOP_output_0_currentValue);
+   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
+   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
+   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
+   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
+
+   // Subtraction
+   printf("\nSubtraction\n\n");
+
+   ACCEL_TOP_input_0_constant = 0xc0000001;
+   ACCEL_TOP_input_1_constant = 0xa0000002;
+   ACCEL_TOP_simple_op = 1;
+
+   RunAccelerator(1);
+
+   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
+   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
+   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
+   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
+
+   // Division
+   printf("\nDivision\n\n");
+
+   ACCEL_TOP_input_0_constant = 0xc0000001;
+   ACCEL_TOP_input_1_constant = 0xa0000002;
+   ACCEL_TOP_simple_op = 2;
+
+   RunAccelerator(1);
+
+   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
+   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
+   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
+   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
+
+   // Multiplication
+   printf("\nMultiplication\n\n");
+
+   ACCEL_TOP_input_0_constant = 0xc0000001;
+   ACCEL_TOP_input_1_constant = 0xa0000002;
+   ACCEL_TOP_simple_op = 3;
+
+   RunAccelerator(1);
+
+   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
    printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
    printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
    printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);

@@ -23,22 +23,22 @@ module fpu #(
 
     input [`OPCODE_W-1:0]       op,
     //Outputs
-    (* versat_latency = 20 *) output reg[DATA_W-1:0]      out0, // Versat latency is needed, but for testing it can be larger than the real value. As long as the output does not change if inputs remain stable
+    (* versat_latency = 40 *) output [DATA_W-1:0]      out0, // Versat latency is needed, but for testing it can be larger than the real value. As long as the output does not change if inputs remain stable
 
     output                      overflow,
     output                      underflow,
     output                      div_by_zero,
-    output reg                  done	
+    output                      done
    );
    
    localparam			  	 EXP_MAX_W =  2**EXP_SZ_W; //-1
    localparam			  	 MAN_MAX_W = DATA_W-EXP_SZ_W+1;
    localparam				 EXTRA = 3*ROUNDING; //Extra Rounding Bits (Guard,Round,Sticky)
    
-   wire                                ADD = !op[1] & !op[0] & run;
-   wire                                SUB = !op[1] & op[0] & run;
-   wire                                DIV = op[1] & !op[0] & run;
-   wire                                MUL = op[1] & op[0] & run;
+   wire                                ADD = !op[1] & !op[0];// & run;
+   wire                                SUB = !op[1] & op[0];// & run;
+   wire                                DIV = op[1] & !op[0];// & run;
+   wire                                MUL = op[1] & op[0];// & run;
    wire                                under_add, under_mult, over_add, over_mult, under_div, over_div,
 over_round, div_flag;
    wire                                unpack_a_start, unpack_b_start, add_start, div_start, mul_start, pack_start;
@@ -46,10 +46,11 @@ over_round, div_flag;
    wire [EXP_MAX_W-1:0]                e_a, e_b, e_add, e_mult, e_div;
    wire [MAN_MAX_W-1:0]                m_a, m_b;
    wire [MAN_MAX_W-1+EXTRA:0]          m_add, m_mult, m_div;
-   reg  [EXP_MAX_W-1:0]                e_o;
-   reg  [MAN_MAX_W-1+EXTRA:0]          m_o;
+   wire [EXP_MAX_W-1:0]                e_o;
+   wire [MAN_MAX_W-1+EXTRA:0]          m_o;
    wire  [DATA_W-1:0]                  out;
-   reg                                 ready, op_done;
+   reg                                 ready;
+   wire                                op_done;
    
    always @ (posedge clk) begin
      if (rst) 
@@ -165,42 +166,17 @@ over_round, div_flag;
   assign       underflow = under_add | under_mult | under_div;
   assign       div_by_zero = div_flag;
 
- 
-  always @(posedge clk) begin
-      if (rst) begin
-        e_o <= 0;
-        m_o <= 0;
-        
-        op_done <= 0;
-      end
-      else if (add_done) begin
-         e_o <= e_add;
-         m_o <= m_add;
-         
-         op_done <= add_done;
-      end
-      else if (mul_done) begin
-         e_o <= e_mult;
-         m_o <= m_mult;
-         
-         op_done <= mul_done;
-      end
-      else if (div_done) begin
-         e_o <= e_div;
-         m_o <= m_div;
-         
-         op_done <= div_done;
-      end
-  end 
-  
-  always @(posedge clk) begin
-    if(rst) begin
-      done <= 1'b0;
-      out0 <= 0;
-    end else begin
-      done <= pack_done;
-      if(done) 
-        out0 <= out;
-  end
-end
+  assign e_o = DIV? e_div:
+               MUL? e_mult:
+                    e_add;
+
+  assign m_o = DIV? m_div:
+               MUL? m_mult:
+                    m_add;
+
+  assign op_done = add_done | mul_done | div_done;
+
+  assign done = pack_done;
+  assign out0 = out;
+
 endmodule
