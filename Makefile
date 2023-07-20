@@ -1,13 +1,8 @@
 SHELL = /bin/bash
-export 
+MAKEFLAGS += --no-builtin-rules
+ROOT_DIR:=.
+include $(ROOT_DIR)/config.mk
 
-#run on external memory implies DDR use
-ifeq ($(RUN_EXTMEM),1)
-USE_DDR=1
-endif
-
-ILA_DIR=./submodules/ILA
-ILA_PYTHON_DIR=$(ILA_DIR)/software/python
 ila-build: ilaFormat.txt
 	$(ILA_PYTHON_DIR)/ilaGenerateSource.py ilaFormat.txt ila.c
 	$(ILA_PYTHON_DIR)/ilaGenerateVerilog.py ilaFormat.txt $(HW_DIR)/include/
@@ -24,12 +19,6 @@ ila-clean:
 #
 # BUILD EMBEDDED SOFTWARE
 #
-SW_DIR:=./software
-FIRM_DIR:=$(SW_DIR)/firmware
-
-#default baud and frequency if not given
-BAUD ?=$(SIM_BAUD)
-FREQ ?=$(SIM_FREQ)
 
 fw-build: ila-build
 	$(MAKE) -C $(FIRM_DIR) build-all
@@ -47,7 +36,6 @@ gen-versat:
 # EMULATE ON PC
 #
 
-PC_DIR:=$(SW_DIR)/pc-emul
 pc-emul-build:
 	$(MAKE) -C $(PC_DIR) build
 
@@ -63,18 +51,14 @@ pc-emul-clean: fw-clean
 pc-emul-test: pc-emul-clean
 	$(MAKE) -C $(PC_DIR) test
 
-HW_DIR=./hardware
+run-versat:
+	$(MAKE) -C $(PC_DIR) run-versat
+
 #
 # SIMULATE RTL
 #
-#default simulator running locally or remotely
-SIMULATOR ?=verilator
-SIM_DIR=$(HW_DIR)/simulation/$(SIMULATOR)
-#default baud and system clock frequency
-SIM_BAUD = 2500000
-SIM_FREQ =50000000
+
 sim-build: ila-build
-	$(MAKE) -C $(PC_DIR) run
 	$(MAKE) fw-build
 	$(MAKE) -C $(SIM_DIR) build
 
@@ -83,7 +67,7 @@ sim-build: ila-build
 	$(MAKE) fw-build SIM=1
 	$(MAKE) -C $(SIM_DIR) build
 
-sim-run: sim-build ./hardware/src/versat_instance.v
+sim-run: sim-build
 	$(MAKE) -C $(SIM_DIR) run
 
 sim-clean: fw-clean
@@ -102,28 +86,18 @@ sim-debug:
 	$(MAKE) -C $(SIM_DIR) debug
 
 #
-# BUILD, LOAD AND RUN ON FPGA BOARD
+# HARDWARE BUILD AND RUN
 #
-#default board running locally or remotely
-BOARD ?=AES-KU040-DB-G
-BOARD_DIR =$(shell find hardware -name $(BOARD))
-#default baud and system clock freq for boards
-BOARD_BAUD = 115200
-#default board frequency
-BOARD_FREQ ?=100000000
-ifeq ($(BOARD), CYCLONEV-GT-DK)
-BOARD_FREQ =50000000
-endif
 
 fpga-fw-build: ila-build
 	$(MAKE) fw-build BAUD=$(BOARD_BAUD) FREQ=$(BOARD_FREQ)
 
 fpga-build: ila-build
-	#$(MAKE) -C $(PC_DIR) run
-	$(MAKE) fw-build BAUD=$(BOARD_BAUD) FREQ=$(BOARD_FREQ)
+	$(MAKE) -C $(BOOT_DIR) build BAUD=$(BOARD_BAUD) FREQ=$(BOARD_FREQ)
+	#$(MAKE) fw-build BAUD=$(BOARD_BAUD) FREQ=$(BOARD_FREQ)
 	$(MAKE) -C $(BOARD_DIR) build
 
-fpga-run: fpga-fw-build
+fpga-run:
 	$(MAKE) -C $(BOARD_DIR) run TEST_LOG="$(TEST_LOG)"
 
 fpga-clean: fw-clean
@@ -141,7 +115,6 @@ fpga-test:
 #
 # COMPILE DOCUMENTS
 #
-DOC_DIR=document/$(DOC)
 doc-build:
 	$(MAKE) -C $(DOC_DIR) $(DOC).pdf
 
@@ -193,9 +166,21 @@ test-doc-clean:
 	$(MAKE) doc-clean DOC=pb
 	$(MAKE) doc-clean DOC=presentation
 
-test: test-clean test-pc-emul test-sim test-fpga test-doc
-
 test-clean: test-pc-emul-clean test-sim-clean test-fpga-clean test-doc-clean
+
+$(TESTS):
+	$(MAKE) -C $(PC_DIR) build TEST=$@
+
+test: $(TESTS)
+	$(foreach i, $(TESTS),$(MAKE) -s -C $(PC_DIR) run TEST=$i;)
+
+single-test:
+	@echo "Trying " $(TEST)
+	$(MAKE) -C $(PC_DIR) build TEST=$(TEST)
+	$(MAKE) -C $(PC_DIR) run
+
+versat-clean:
+	$(MAKE) -C ./submodules/VERSAT clean
 
 debug:
 	@echo $(UART_DIR)

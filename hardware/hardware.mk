@@ -18,7 +18,8 @@ include $(MEM_DIR)/hardware/rom/iob_rom_sp/hardware.mk
 include $(MEM_DIR)/hardware/ram/iob_ram_dp_be/hardware.mk
 
 #CPU
-include $(PICORV32_DIR)/hardware/hardware.mk
+#include $(PICORV32_DIR)/hardware/hardware.mk
+include $(VEXRISCV_DIR)/hardware/hardware.mk
 
 #CACHE
 include $(CACHE_DIR)/hardware/hardware.mk
@@ -28,6 +29,9 @@ include $(UART_DIR)/hardware/hardware.mk
 
 #TIMER
 include $(TIMER_DIR)/hardware/hardware.mk
+
+#ETHERNET
+include $(ETHERNET_DIR)/hardware/hardware.mk
 
 #VERSAT
 include $(VERSAT_DIR)/hardware/hardware.mk
@@ -45,9 +49,10 @@ SRC_DIR:=$(HW_DIR)/src
 #DEFINES
 DEFINE+=$(defmacro)DDR_DATA_W=$(DDR_DATA_W)
 DEFINE+=$(defmacro)DDR_ADDR_W=$(DDR_ADDR_W)
+DEFINE+=$(defmacro)AXI_ADDR_W=32
 
 #INCLUDES
-INCLUDE+=$(incdir). $(incdir)$(INC_DIR) $(incdir)$(LIB_DIR)/hardware/include
+INCLUDE+=$(incdir). $(incdir)$(INC_DIR) $(incdir)$(LIB_DIR)/hardware/include $(incdir)$(HW_DIR)/src/units
 
 #HEADERS
 VHDR+=$(INC_DIR)/system.vh $(LIB_DIR)/hardware/include/iob_intercon.vh
@@ -64,25 +69,26 @@ ifeq ($(USE_DDR),1)
 VSRC+=$(SRC_DIR)/ext_mem.v
 endif
 
-ifeq ($(HARDWARE_TEST),)
+ifeq ($(TEST),)
 OUTPUT_SIM_FOLDER := $(HW_DIR)/simulation/verilator
 INPUT_FIRM_FOLDER := $(FIRM_DIR)/
-VSRC+=$(SW_DIR)/pc-emul/generated/versat_instance.v
-INCLUDE+=$(incdir)$(SW_DIR)/pc-emul/generated
-INCLUDE+=$(incdir)$(SW_DIR)/pc-emul/src
+VSRC+=$(FIRM_DIR)/generated/versat_instance.v
+VSRC+=$(wildcard $(FIRM_DIR)/generated/src/*.v)
+INCLUDE+=$(incdir)$(FIRM_DIR)/generated
+INCLUDE+=$(incdir)$(FIRM_DIR)/src
 else
-INPUT_FIRM_FOLDER := $(FIRM_DIR)/test/$(HARDWARE_TEST)
-OUTPUT_SIM_FOLDER := $(HW_DIR)/simulation/verilator/test/$(HARDWARE_TEST)
-VSRC+=$(SW_DIR)/pc-emul/test/$(HARDWARE_TEST)/versat_instance.v
-INCLUDE+=$(incdir)$(SW_DIR)/pc-emul/test/$(HARDWARE_TEST)/src
-INCLUDE+=$(incdir)$(SW_DIR)/pc-emul/test/$(HARDWARE_TEST)
+OUTPUT_SIM_FOLDER := $(HW_DIR)/simulation/verilator/test/$(TEST)
+INPUT_FIRM_FOLDER := $(FIRM_DIR)/test/$(TEST)
+VSRC+=$(FIRM_DIR)/test/$(TEST)/versat_instance.v
+VSRC+=$(wildcard $(FIRM_DIR)/test/$(TEST)/src/*.v)
+INCLUDE+=$(incdir)$(FIRM_DIR)/test/$(TEST)/src
+INCLUDE+=$(incdir)$(FIRM_DIR)/test/$(TEST)
 endif
 
 #system
 VSRC+=$(SRC_DIR)/boot_ctr.v $(SRC_DIR)/int_mem.v $(SRC_DIR)/sram.v
 VSRC+=system.v
 
-VSRC+=$(wildcard $(SW_DIR)/pc-emul/src/*.v)
 VSRC+=$(wildcard $(SRC_DIR)/units/*.v)
 
 HEXPROGS=$(OUTPUT_SIM_FOLDER)/boot.hex $(OUTPUT_SIM_FOLDER)/firmware.hex
@@ -90,7 +96,7 @@ HEXPROGS=$(OUTPUT_SIM_FOLDER)/boot.hex $(OUTPUT_SIM_FOLDER)/firmware.hex
 # make system.v with peripherals
 system.v: $(SRC_DIR)/system_core.v
 	cp $< $@
-	$(foreach p, $(PERIPHERALS), $(eval HFILES=$(shell echo `ls $($p_DIR)/hardware/include/*.vh | grep -v pio | grep -v inst | grep -v swreg`)) \
+	$(foreach p, $(PERIPHERALS), $(eval HFILES=$(shell echo `ls $($p_DIR)/hardware/include/*.vh | grep -v pio | grep -v inst | grep -v swreg | grep -v port`)) \
 	$(eval HFILES+=$(notdir $(filter %swreg_def.vh, $(VHDR)))) \
 	$(if $(HFILES), $(foreach f, $(HFILES), sed -i '/PHEADER/a `include \"$f\"' $@;),)) # insert header files
 	$(foreach p, $(PERIPHERALS), if test -f $($p_DIR)/hardware/include/pio.vh; then sed -i '/PIO/r $($p_DIR)/hardware/include/pio.vh' $@; fi;) #insert system IOs for peripheral

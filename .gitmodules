@@ -25,3 +25,9 @@
 [submodule "submodules/ILA"]
 	path = submodules/ILA
 	url = git@github.com:IObundle/iob-ila.git
+[submodule "submodules/ETHERNET"]
+	path = submodules/ETHERNET
+	url = git@github.com:IObundle/iob-eth.git
+[submodule "submodules/VEXRISCV"]
+	path = submodules/VEXRISCV
+	url = git@github.com:IObundle/iob-vexriscv.git

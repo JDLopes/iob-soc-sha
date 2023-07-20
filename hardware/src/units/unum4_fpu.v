@@ -5,18 +5,26 @@
 module fpu #(	
         parameter DATA_W=32,
         parameter EXP_SZ_W=4,
-        parameter ROUNDING=0 // 0- Without Extra Bits ; 1-Round to the nearest, ties even.
+        parameter ROUNDING=0, // 0- Without Extra Bits ; 1-Round to the nearest, ties even.
+        parameter AXI_ADDR_W=32 // Required by versat for now, even if not using it. Later I'll change this into being optional
         )
    (
     //Inputs
     input                       clk,
     input                       rst,
-    input                       start,
-    input [DATA_W-1:0]          a,
-    input [DATA_W-1:0]          b,
+
+    // Certain inputs need to follow naming conventions. These are: running,run,in0,in1,done and out0.
+
+    input                       running,
+
+    input                       run,
+    input [DATA_W-1:0]          in0,
+    input [DATA_W-1:0]          in1,
+
     input [`OPCODE_W-1:0]       op,
     //Outputs
-    output reg[DATA_W-1:0]      o,
+    (* versat_latency = 20 *) output reg[DATA_W-1:0]      out0, // Versat latency is needed, but for testing it can be larger than the real value. As long as the output does not change if inputs remain stable
+
     output                      overflow,
     output                      underflow,
     output                      div_by_zero,
@@ -27,10 +35,10 @@ module fpu #(
    localparam			  	 MAN_MAX_W = DATA_W-EXP_SZ_W+1;
    localparam				 EXTRA = 3*ROUNDING; //Extra Rounding Bits (Guard,Round,Sticky)
    
-   wire                                ADD = !op[1] & !op[0] & start;
-   wire                                SUB = !op[1] & op[0] & start;
-   wire                                DIV = op[1] & !op[0] & start;
-   wire                                MUL = op[1] & op[0] & start;
+   wire                                ADD = !op[1] & !op[0] & run;
+   wire                                SUB = !op[1] & op[0] & run;
+   wire                                DIV = op[1] & !op[0] & run;
+   wire                                MUL = op[1] & op[0] & run;
    wire                                under_add, under_mult, over_add, over_mult, under_div, over_div,
 over_round, div_flag;
    wire                                unpack_a_start, unpack_b_start, add_start, div_start, mul_start, pack_start;
@@ -47,7 +55,7 @@ over_round, div_flag;
      if (rst) 
        ready <= 1'b0;
      else
-       ready <= start;
+       ready <= run;
    end
   
   assign unpack_a_start = ready;
@@ -59,7 +67,7 @@ over_round, div_flag;
                .rst(rst),
                .start(unpack_a_start),
                .done(unpack_a_done),
-               .x(a),
+               .x(in0),
                .e(e_a),
                .m(m_a)
            );
@@ -70,7 +78,7 @@ over_round, div_flag;
                .rst(rst),
                .start(unpack_b_start),
                .done(unpack_b_done),
-               .x(b),
+               .x(in1),
                .e(e_b),
                .m(m_b)
            );
@@ -188,11 +196,11 @@ over_round, div_flag;
   always @(posedge clk) begin
     if(rst) begin
       done <= 1'b0;
-      o <= 0;
+      out0 <= 0;
     end else begin
       done <= pack_done;
       if(done) 
-        o <= out;
+        out0 <= out;
   end
 end
 endmodule

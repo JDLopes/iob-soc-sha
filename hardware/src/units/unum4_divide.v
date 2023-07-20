@@ -91,7 +91,7 @@ module unum4_divide #(
   assign in2 = (m_b_reg[MAN_MAX_W-1]) ? ~m_b_reg + {{MAN_MAX_W-1{1'b0}},1'b1} : m_b_reg;
   assign div_sign = m_a_reg[MAN_MAX_W-1] ^ m_b_reg[MAN_MAX_W-1];
  
-  div_subshift # (.DATA_W(2*MAN_MAX_W)) div_subshift (
+  unum4_div_subshift # (.DATA_W(2*MAN_MAX_W)) div_subshift (
           .clk(clk),
           .en(done_reg1),
           .sign(1'b0),

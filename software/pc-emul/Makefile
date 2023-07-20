@@ -1,20 +1,11 @@
 SHELL := /bin/bash
 
-ROOT_DIR:=../..
+ROOT_DIR:=$(abspath $(shell pwd)/../..)
 
 DEBUG_GUI := 0
 
-#LOCAL_CFLAGS := -Wall -g -Werror=return-type -march=native -DVERSAT_DEBUG
-LOCAL_CFLAGS := --lint-only -g -Werror=return-type -march=native -DVERSAT_DEBUG
+LOCAL_CFLAGS := -Wall -g -Werror=return-type -march=native -DVERSAT_DEBUG
 GLOBAL_CFLAGS:= $(LOCAL_CFLAGS) -std=c++17 #-fsanitize=address #-msse2
-
-ifeq ($(DEBUG_GUI),1)
-LIBS += -lSDL2  -lGL -ldl
-else
-#DEFINE += -Dx86
-#GLOBAL_CFLAGS += -m32
-#LOCAL_CFLAGS += -m32
-endif
 
 include ../software.mk
 
@@ -26,18 +17,23 @@ ETH_LOG:=ethernet.log
 EMUL_PROFILE_LOG:=emul_profile.log
 
 #SUBMODULES
-VERSAT_SPEC_INCLUDE:=-I ./generated -I ./build -I ./src -I ../hardware/src/units
+VERSAT_SPEC_INCLUDE:=-I ./generated -I ./build -I ./src
 
 #peripherals (pc)
 $(foreach p, $(PERIPHERALS), $(eval include $($p_DIR)/software/pc-emul/pc-emul.mk))
 
 LIBS := $(VERSAT_DIR)/libversat.a -lstdc++ -lm -lgcc -lc -pthread -ldl
 
-#HEADERS
-HDR+=periphs.h 
+ifeq ($(VERSAT_DEBUG),1)
+LIBS += -lSDL2  -lGL -ldl
+endif
 
-#SOURCES
-SRC+= $(UART_DIR)/software/printf.c
+# Remove sources that we will precompile into objects
+OBJ_SOURCES:= ../../submodules/UART/software/iob-uart.c ../../submodules/UART/software/pc-emul/iob_uart_swreg_pc_emul.c ../../submodules/TIMER/software/iob-timer.c ../../submodules/TIMER/software/pc-emul/iob_timer_swreg_pc_emul.c ../../submodules/ILA/software/pc-emul/iob-ila.c ./iob_ila_swreg_emb.c ../../submodules/UART/software/printf.c 
+
+OBJ_SOURCES:=$(foreach file,$(OBJ_SOURCES),$(realpath $(file)))
+OBJ_SOURCES+=iob_ila_swreg_emb.c
+SRC:=$(filter-out $(OBJ_SOURCES),$(SRC))
 
 OBJ += ./build/iob-uart.o
 OBJ += ./build/iob_uart_swreg_pc_emul.o
@@ -49,107 +45,66 @@ OBJ += ./build/printf.o
 
 ./build/iob-uart.o : ../../submodules/UART/software/iob-uart.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob-uart.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/iob_uart_swreg_pc_emul.o : ../../submodules/UART/software/pc-emul/iob_uart_swreg_pc_emul.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob_uart_swreg_pc_emul.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/iob-timer.o : ../../submodules/TIMER/software/iob-timer.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob-timer.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/iob_timer_swreg_pc_emul.o : ../../submodules/TIMER/software/pc-emul/iob_timer_swreg_pc_emul.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob_timer_swreg_pc_emul.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/iob-ila.o : ../../submodules/ILA/software/pc-emul/iob-ila.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob-ila.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/iob_ila_swreg_emb.o : iob_ila_swreg_emb.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/iob_ila_swreg_emb.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
-
 ./build/printf.o : ../../submodules/UART/software/printf.c 
 	gcc $(LOCAL_CFLAGS) -c -o ./build/printf.o $(DEFINE) $(INCLUDE) $< -I $(VERSAT_SW_DIR) -I $(VERILATOR_INCLUDE) -I ./build/ 
 
-INCLUDE+=$(incdir)./build
-INCLUDE+=$(incdir)./generated
-INCLUDE+=$(incdir)$(VERILATOR_INCLUDE)
-OBJ+= $(wildcard ./generated/*.o)
-
 SOC_OUT_BIN:=soc-out.bin
-
-#PROFILE
-ifeq ($(PROFILE),1)
-HDR+=$(FIRM_DIR)/profile.h
-SRC+= $(FIRM_DIR)/profile.c
-DEFINE+=$(defmacro)PROFILE
-INCLUDE+=$(incdir)$(FIRM_DIR)
-endif
 
 DEFINE+=$(defmacro)"CRYPTO_NAMESPACE(x)=x"
 
 #CONSOLE
-CONSOLE_CMD=$(ROOT_DIR)/software/console/eth_console -L
+CONSOLE_CMD=$(ROOT_DIR)/software/console/console -L
 
 #RULES
-ifeq ($(HARDWARE_TEST),)
-OUTPUT_FOLDER := ./generated
+ifeq ($(TEST),)
+OUTPUT_FOLDER:=./generated
 FW_NAME:=./generated/fw_emul
-OUTPUT_SIM_FOLDER := $(HW_DIR)/src
-OUTPUT_FIRM_FOLDER := $(SW_DIR)/firmware
 else
-OUTPUT_FOLDER := ./test/$(HARDWARE_TEST)
-FW_NAME:=./test/$(HARDWARE_TEST)/fw_emul
-OUTPUT_SIM_FOLDER := $(HW_DIR)/simulation/verilator/test/$(HARDWARE_TEST)
-OUTPUT_FIRM_FOLDER := $(SW_DIR)/firmware/test/$(HARDWARE_TEST)
+OUTPUT_FOLDER:=./test/$(TEST)
+FW_NAME:=./test/$(TEST)/fw_emul
 endif
+
+OPTS:=-s
+
+INCLUDE+=$(incdir)$(OUTPUT_FOLDER)
 
 temp := $(shell mkdir -p $(OUTPUT_FOLDER))
 temp2 := $(shell mkdir -p ./build)
 
-build: gen_data $(FW_NAME)
+EXTRA_SOURCES:=$(foreach file,$(EXTRA_VERSAT_SRC),-S $(file))
+HDR+=$(FIRM_DIR)/Tests/testbench.h # Header but contains code common to all testbenches
 
-force-build: gen_data
-	g++ -w -o fw_emul $(GLOBAL_CFLAGS) $(DEFINE) $(INCLUDE) ./build/*.o $(FIRM_DIR)/firmware.cpp $(LIBS) #-fuse-ld=lld 
+LIBS+=$(OUTPUT_FOLDER)/libaccel.a
 
-run-versat:
-	$(MAKE) -C $(VERSAT_DIR) versat
-
-$(OUTPUT_FOLDER)/accel.hpp: run-versat $(VERSAT_DIR)/versat
-	$(VERSAT_DIR)/versat $(SHARED_HARDWARE) $(HW_DIR)/src/units/*.v -I $(HW_DIR)/src/units/ -I $(VERSAT_DIR)/hardware/include testVersatSpecification.txt -s -T fpu -S unum4_adder -S unum4_addsub -S unum4_bs -S unum4_clz -S unum4_div_unum4_subshift -S unum4_divide -S expdiff  -S unum4_mult -S unum4_pack0 -S unum4_unpack -o ./generated/
+$(OUTPUT_FOLDER)/versat_accel.h: $(VERSAT_EXE) $(VERSAT_THIS_HARDWARE) $(EXTRA_VERSAT_SRC) testVersatSpecification.txt
+	$(VERSAT_EXE) $(VERSAT_THIS_HARDWARE) $(EXTRA_SOURCES) $(V_INCLUDE) $(VERSAT_THIS_INCLUDE) testVersatSpecification.txt $(OPTS) -T $(TYPE_NAME) -o $(OUTPUT_FOLDER)
 	$(MAKE) -C $(OUTPUT_FOLDER) all
-	cp $(OUTPUT_FOLDER)/accel.hpp $(FIRM_DIR)/accel.hpp
 
-$(FW_NAME): run-versat $(OUTPUT_FOLDER)/accel.hpp $(HDR) $(SRC) $(UNIT_HDR) $(CPP_OBJ) $(OBJ) $(FIRM_DIR)/firmware.cpp
-	g++ -g -w -o $(FW_NAME) $(GLOBAL_CFLAGS) $(DEFINE) $(INCLUDE) -I$(VERILATOR_INCLUDE) -I$(OUTPUT_FOLDER)/ $(FIRM_DIR)/firmware.cpp $(VERSAT_SPEC_OBJS) ./build/*.o ./generated/*.o $(LIBS)
+$(FW_NAME): $(OUTPUT_FOLDER)/versat_accel.h $(HDR) $(SRC) $(UNIT_HDR) $(CPP_OBJ) $(FIRMWARE) $(OBJ) $(wildcard $(OUTPUT_FOLDER)/*.o) $(FIRMWARE) 
+	$(COMPILER) -DPC -g -w -o $(FW_NAME) $(GLOBAL_CFLAGS) $(DEFINE) $(INCLUDE) -I$(VERILATOR_INCLUDE) -I$(OUTPUT_FOLDER) $(FIRMWARE) $(VERSAT_SPEC_OBJS) $(SRC) ./build/*.o $(OUTPUT_FOLDER)/*.o $(LIBS)  
+
+build: $(FW_NAME)
 
 run: $(FW_NAME)
-	-cd $(OUTPUT_FOLDER); ./fw_emul
+	#$(CONSOLE_CMD) & $(OUTPUT_FOLDER)/fw_emul
+	@cd $(OUTPUT_FOLDER); ./fw_emul
 
 clean:
 	@rm -rf fw_emul periphs.h *swreg*.h *swreg*.c test.log soc2cnsl cnsl2soc \
 		$(ETH_LOG) $(SOC_LOG) eth_frame_struct.h $(EMUL_PROFILE_LOG)
 	@rm -f versat_data.inc versat_defs.vh versat_instance.v versat_external_memory_inst.vh versat_external_memory_port.vh versat_external_memory_portmap.vh
-	@$(MAKE) -C $(SW_DIR)/python clean
-	@$(MAKE) -C $(SW_TEST_DIR) clean
-	@rm -f -r ./test ./build ./debug ./src ./generated
+	@rm -f -r ./test ./build ./debug ./src ./generated periphs_tmp.h
 
-test: 
-	$(MAKE) run
-	$(MAKE) validate
-
-validate:
-	$(MAKE) -C $(SW_TEST_DIR) validate SOC_OUT_BIN=$(SOC_OUT_BIN) TEST_VECTOR_RSP=$(TEST_VECTOR_RSP)
-
-profile: clean $(EMUL_PROFILE_LOG)
-	@printf "\n=== PROFILE LOG ===\n"
-	@cat $(EMUL_PROFILE_LOG)
-	@printf "=== PROFILE LOG ===\n"
-
-$(SOC_LOG): 
-	$(MAKE) run PROFILE=1 TEST_LOG="> $(SOC_LOG)"
-
-$(EMUL_PROFILE_LOG): $(SOC_LOG)
-	@grep "PROFILE:" $< > $(EMUL_PROFILE_LOG)
-
-.PHONY: build run ./build/versatCompiler\
-	test validate profile \
+.PHONY: build run versat test \
 	clean force-build
 
