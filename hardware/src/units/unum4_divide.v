@@ -90,10 +90,42 @@ module unum4_divide #(
   assign in1 = (m_a_reg[MAN_MAX_W-1]) ? ~m_a_reg + {{MAN_MAX_W-1{1'b0}},1'b1} : m_a_reg;
   assign in2 = (m_b_reg[MAN_MAX_W-1]) ? ~m_b_reg + {{MAN_MAX_W-1{1'b0}},1'b1} : m_b_reg;
   assign div_sign = m_a_reg[MAN_MAX_W-1] ^ m_b_reg[MAN_MAX_W-1];
+
+  reg st, st_nxt;
+  always @(posedge clk) begin
+     if (rst) begin
+        st <= 1'b0;
+     end else begin
+        st <= st_nxt;
+     end
+  end
+
+  reg div_en;
+  always @* begin
+     st_nxt = st;
+     div_en = 1'b0;
+
+     case (st)
+       0: begin
+          div_en = 1'b0;
+
+          if (start) begin
+             st_nxt = 1'b1;
+          end
+       end
+       1: begin
+          div_en = 1'b1;
+
+          if (div_done) begin
+             st_nxt = 1'b0;
+          end
+       end
+     endcase
+  end
  
   unum4_div_subshift # (.DATA_W(2*MAN_MAX_W)) div_subshift (
           .clk(clk),
-          .en(done_reg1),
+          .en(div_en & ~div_done),
           .sign(1'b0),
           .done(div_done),
           .dividend({in1, {MAN_MAX_W{1'b0}}}),

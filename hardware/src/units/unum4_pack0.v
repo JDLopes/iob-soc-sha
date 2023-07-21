@@ -29,7 +29,7 @@ module unum4_pack0 #(
   reg [EXP_MAX_W-1:0]           exp_reg;
   reg[MAN_MAX_W-1:0]            mant_reg;
   reg [EXP_MAX_W-1:0]           stcomp_exp_reg;
-  reg                           ready, done_reg1;
+  reg                           done_reg1;
   
 
 //Pipeline Stage 1  
@@ -37,27 +37,23 @@ module unum4_pack0 #(
     if(rst) begin
       exp_reg <= {EXP_MAX_W{1'b0}};
       mant_reg <= {MAN_MAX_W{1'b0}};
-      ready <= 1'b0;
+      done_reg1 <= 1'b0;
     end else begin
       exp_reg <= exp;
       mant_reg <= mant;
-      ready <= start;
+      done_reg1 <= start;
     end
   end
   
 // Exponent Conversion (1's Complement)  
-  assign stcomp_exp = (exp_reg[EXP_MAX_W-1]==1'b1)? (mant_reg[MAN_MAX_W-1]==mant_reg[MAN_MAX_W-2])? exp_reg-EXP_MAX_W'(2): exp_reg-1'b1:exp_reg;
+  assign stcomp_exp = (exp[EXP_MAX_W-1]==1'b1)? (mant[MAN_MAX_W-1]==mant[MAN_MAX_W-2])? exp-EXP_MAX_W'(2): exp-1'b1:exp;
  
 // Pipeline Stage 2 
   always @(posedge clk) begin
     if(rst) begin
       stcomp_exp_reg <= {EXP_MAX_W{1'b0}};
-      
-      done_reg1 <= 1'b0;
     end else begin
       stcomp_exp_reg <= stcomp_exp;
-      
-      done_reg1 <= ready;
     end
   end
   

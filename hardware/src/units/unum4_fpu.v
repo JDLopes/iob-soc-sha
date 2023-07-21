@@ -23,7 +23,7 @@ module fpu #(
 
     input [`OPCODE_W-1:0]       op,
     //Outputs
-    (* versat_latency = 40 *) output [DATA_W-1:0]      out0, // Versat latency is needed, but for testing it can be larger than the real value. As long as the output does not change if inputs remain stable
+    (* versat_latency = 72 *) output [DATA_W-1:0]      out0, // Versat latency is needed, but for testing it can be larger than the real value. As long as the output does not change if inputs remain stable
 
     output                      overflow,
     output                      underflow,

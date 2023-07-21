@@ -55,8 +55,8 @@ int main(int argc,char* argv[]){
    // Addition
    printf("\nAddition\n\n");
 
-   ACCEL_TOP_input_0_constant = 0xc0000001;
-   ACCEL_TOP_input_1_constant = 0xa0000002;
+   ACCEL_TOP_input_0_constant = 0xc0000001; // 1.0
+   ACCEL_TOP_input_1_constant = 0xa0000002; // 2.0
    ACCEL_TOP_simple_op = 0;
 
    RunAccelerator(1);
