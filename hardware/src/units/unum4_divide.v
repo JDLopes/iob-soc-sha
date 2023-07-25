@@ -110,6 +110,8 @@ module unum4_divide #(
           div_en = 1'b0;
 
           if (start) begin
+             div_en = 1'b1;
+
              st_nxt = 1'b1;
           end
        end
@@ -117,6 +119,8 @@ module unum4_divide #(
           div_en = 1'b1;
 
           if (div_done) begin
+             div_en = 1'b0;
+
              st_nxt = 1'b0;
           end
        end
@@ -125,7 +129,7 @@ module unum4_divide #(
  
   unum4_div_subshift # (.DATA_W(2*MAN_MAX_W)) div_subshift (
           .clk(clk),
-          .en(div_en & ~div_done),
+          .en(div_en),
           .sign(1'b0),
           .done(div_done),
           .dividend({in1, {MAN_MAX_W{1'b0}}}),
