@@ -145,24 +145,24 @@ module unum4_pack #(
    // Pack
    always @* begin
       z=0;
-      y = {{32-EXP_SZ_W{1'b0}}, final_exp_sz};
+      y = {{DATA_W-EXP_SZ_W{1'b0}}, final_exp_sz};
       data_out=0;
       if(final_exp_sz ==0)
-        data_out = {m_o_reg[MAN_MAX_W-2:0],final_exp_sz};
+        data_out = {m_o_reg[MAN_MAX_W-2:0], final_exp_sz};
       else begin
          for(i=0;i<EXP_SZ_W;i=i+1) begin
             data_out[i] = final_exp_sz[i];
          end
          for(k=EXP_SZ_W;k<DATA_W;k=k+1) begin
-            if(k<DATA_W-{{32-EXP_SZ_W{1'b0}},final_exp_sz}) begin
+            if(k<DATA_W-{{DATA_W-EXP_SZ_W{1'b0}}, final_exp_sz}) begin
 	           data_out[k] = m_o_reg[y];
 	           y=y+1'b1;
 	        end
          end
          for(n=0; n<DATA_W; n=n+1) begin
-            if(n>=DATA_W-{{32-EXP_SZ_W{1'b0}},final_exp_sz}) begin
+            if(n>=DATA_W-{{DATA_W-EXP_SZ_W{1'b0}}, final_exp_sz}) begin
                data_out[n] = e_o_reg[z];
-               z=z+1;
+               z=z+1'b1;
             end
          end
       end
