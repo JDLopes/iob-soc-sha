@@ -60,108 +60,144 @@ over_round, div_flag;
    end
   
   assign unpack_a_start = ready;
-  assign unpack_b_start = ready; 
-       
-   
-   unum4_unpack #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W))  unpack_a (
-               .clk(clk),
-               .rst(rst),
-               .start(unpack_a_start),
-               .done(unpack_a_done),
-               .x(in0),
-               .e(e_a),
-               .m(m_a)
-           );
+  assign unpack_b_start = ready;
 
+   unum4_unpack
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W)
+       )
+   unpack_a
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(unpack_a_start),
+      .done(unpack_a_done),
+      .x(in0),
+      .e(e_a),
+      .m(m_a)
+      );
 
-   unum4_unpack #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W))    unpack_b (
-               .clk(clk),
-               .rst(rst),
-               .start(unpack_b_start),
-               .done(unpack_b_done),
-               .x(in1),
-               .e(e_b),
-               .m(m_b)
-           );
+   unum4_unpack
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W)
+       )
+   unpack_b
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(unpack_b_start),
+      .done(unpack_b_done),
+      .x(in1),
+      .e(e_b),
+      .m(m_b)
+      );
            
   assign add_start = unpack_a_done & unpack_b_done & (ADD | SUB) & ~op_done;
   assign div_start = unpack_a_done & unpack_b_done & DIV & ~op_done;
   assign mul_start = unpack_a_done & unpack_b_done & MUL & ~op_done;
      
-   unum4_adder #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W),.EXTRA(EXTRA))   add (
-              .clk(clk),
-              .rst(rst),
-              .start(add_start),
-              .done(add_done),
-              .op(op[0]),
-              .m_a(m_a),
-              .m_b(m_b),
-              .e_a(e_a),
-              .e_b(e_b),
-              .m_o(m_add),
-              .e_o(e_add),
-              .over(over_add),
-	      .under(under_add)
-           );
+   unum4_adder
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W),
+       .EXTRA(EXTRA)
+       )
+   add
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(add_start),
+      .done(add_done),
+      .op(op[0]),
+      .m_a(m_a),
+      .m_b(m_b),
+      .e_a(e_a),
+      .e_b(e_b),
+      .m_o(m_add),
+      .e_o(e_add),
+      .over(over_add),
+	  .under(under_add)
+      );
 
-   unum4_mult #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W),.EXTRA(EXTRA))  mul (
-             .clk(clk),
-             .rst(rst),
-             .start(mul_start),
-             .done(mul_done),
-             .m_a(m_a),
-             .m_b(m_b),
-             .e_a(e_a),
-             .e_b(e_b),
-             .m_o(m_mult),
-             .e_o(e_mult),
-             .over(over_mult),
-             .under(under_mult)
-           );
+   unum4_mult
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W),
+       .EXTRA(EXTRA)
+       )
+   mul
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(mul_start),
+      .done(mul_done),
+      .m_a(m_a),
+      .m_b(m_b),
+      .e_a(e_a),
+      .e_b(e_b),
+      .m_o(m_mult),
+      .e_o(e_mult),
+      .over(over_mult),
+      .under(under_mult)
+      );
 
-   unum4_divide #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W),.EXTRA(EXTRA)) div (
-              .clk(clk),
-              .rst(rst),
-              .start(div_start),
-              .done(div_done), 
-              .m_a(m_a),
-              .m_b(m_b),
-              .e_a(e_a),
-              .e_b(e_b),
-              .m_o(m_div),
-              .e_o(e_div),
-              .over(over_div),
-              .under(under_div),
-              .div_by_zero(div_flag)
-           );
+   unum4_divide
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W),
+       .EXTRA(EXTRA)
+       )
+   div
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(div_start),
+      .done(div_done),
+      .m_a(m_a),
+      .m_b(m_b),
+      .e_a(e_a),
+      .e_b(e_b),
+      .m_o(m_div),
+      .e_o(e_div),
+      .over(over_div),
+      .under(under_div),
+      .div_by_zero(div_flag)
+      );
 
-  assign pack_start = op_done; 
-  generate
-    if(ROUNDING==1) begin
-      unum4_pack #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W),.EXTRA(EXTRA)) pack_o (
-                .clk(clk),
-                .rst(rst),
-                .start(pack_start),
-                .done(pack_done),
-                .exp(e_o),
-                .mant(m_o),
-                .o(out),
-     	        .over(over_round)
-            );            
-    end
-    else begin 
-      unum4_pack0 #(.DATA_W(DATA_W),.MAN_MAX_W(MAN_MAX_W),.EXP_SZ_W(EXP_SZ_W),.EXP_MAX_W(EXP_MAX_W),.EXTRA(EXTRA)) pack_a (
-                .clk(clk),
-                .rst(rst),
-                .start(pack_start),
-                .done(pack_done),
-                .exp(e_o),
-                .mant(m_o),
-                .o(out)
-	       );
-    end
-  endgenerate 
-  
+  assign pack_start = op_done;
+
+   unum4_pack
+     #(
+       .DATA_W(DATA_W),
+       .MAN_MAX_W(MAN_MAX_W),
+       .EXP_SZ_W(EXP_SZ_W),
+       .EXP_MAX_W(EXP_MAX_W),
+       .EXTRA(EXTRA)
+       )
+   pack_o
+     (
+      .clk(clk),
+      .rst(rst),
+      .start(pack_start),
+      .done(pack_done),
+      .exp(e_o),
+      .mant(m_o),
+      .o(out),
+      .over(over_round)
+      );
+
   assign       overflow = over_add | over_round | over_mult | over_div;
   assign       underflow = under_add | under_mult | under_div;
   assign       div_by_zero = div_flag;

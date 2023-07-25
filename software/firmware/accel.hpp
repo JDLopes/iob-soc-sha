@@ -26,7 +26,7 @@ void versat_init(int base);
 void RunAccelerator(int times);
 
 // Needed by PC-EMUL to correctly simulate the design, embedded compiler should remove these symbols from firmware because not used by them 
-static const char* acceleratorTypeName = "unum4_adder unum4_addsub unum4_bs unum4_clz unum4_div_unum4_subshift unum4_divide expdiff  unum4_mult unum4_pack0 unum4_unpack unum4_fpu";
+static const char* acceleratorTypeName = "unum4_fpu";
 static bool isSimpleAccelerator = true;
 
 static const int staticStart = 0x1c;
