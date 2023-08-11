@@ -22,6 +22,9 @@ VERSAT_SPEC_INCLUDE:=-I ./generated -I ./build -I ./src
 #peripherals (pc)
 $(foreach p, $(PERIPHERALS), $(eval include $($p_DIR)/software/pc-emul/pc-emul.mk))
 
+#Unum-IV
+include $(UNUM4_DIR)/software.mk
+
 LIBS := $(VERSAT_DIR)/libversat.a -lstdc++ -lm -lgcc -lc -pthread -ldl
 
 ifeq ($(VERSAT_DEBUG),1)

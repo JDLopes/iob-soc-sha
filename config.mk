@@ -104,6 +104,7 @@ ILA_PYTHON_DIR=$(ILA_DIR)/software/python
 #sw paths
 SW_DIR:=$(ROOT_DIR)/software
 PC_DIR:=$(SW_DIR)/pc-emul
+UNUM4_DIR:=$(SW_DIR)/unum4
 FIRM_DIR:=$(SW_DIR)/firmware
 BOOT_DIR:=$(SW_DIR)/bootloader
 CONSOLE_DIR:=$(SW_DIR)/console

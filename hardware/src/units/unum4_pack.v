@@ -86,7 +86,7 @@ module unum4_pack #(
          assign sticky_bit = mant_reg[exp_size+1-1];
 
          // Round
-         assign round = (~guard_bit)? 1'b0: (~(round_bit | sticky_bit) & ~m_lsb) ? 1'b0: 1'b1;
+         assign round = guard_bit & (round_bit | sticky_bit | m_lsb);
          assign extra = ({{MAN_MAX_W-1{1'b0}},1'b1} << exp_size);
          assign mantissa = (round)? mant_reg[MAN_MAX_W-1+EXTRA:3] + extra: mant_reg[MAN_MAX_W-1+EXTRA:3];
 

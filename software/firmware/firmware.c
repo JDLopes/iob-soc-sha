@@ -12,6 +12,8 @@ extern "C" {
 #include "iob-timer.h"
 #include "iob-ila.h"
 
+#include "unum4_hw.h"
+
 #ifdef __cplusplus
 }
 #endif
@@ -26,91 +28,82 @@ int printf_(const char* format, ...);
 #define printf printf_
 #endif
 
-typedef union{
-   iptr i;
-   float f;
-} Conv;
+uint8_t failed, overflow, underflow, div_by_zero;
 
-static iptr PackInt(float f){
-   Conv c = {};
-   c.f = f;
-   return c.i;
-}
+void test_operations(void) {
 
-static float UnpackInt(iptr i){
-   Conv c = {};
-   c.i = i;
-   return c.f;
+  // Addition
+  printf("\nAddition\n\n");
+
+  unum4 op1 = double2unum4(1.0, &failed);
+  unum4 op2 = double2unum4(2.0, &failed);
+
+  unum4 res = unum4_add(op1, op2, &overflow);
+
+  printf("Op1: %.16f (0x%08x) \n", op1, unum42double(op1));
+  printf("Op2: %.16f (0x%08x) \n", op2, unum42double(op2));
+  printf("Result: %.16f (0x%08x) \n", res, unum42double(res));
+  printf("Overflow: %d\n", overflow);
+
+  // Subtraction
+  printf("\nSubtraction\n\n");
+
+  op1 = double2unum4(1.0, &failed);
+  op2 = double2unum4(2.0, &failed);
+
+  res = unum4_sub(op1, op2, &overflow);
+
+  printf("Op1: %.16f (0x%08x) \n", op1, unum42double(op1));
+  printf("Op2: %.16f (0x%08x) \n", op2, unum42double(op2));
+  printf("Result: %.16f (0x%08x) \n", res, unum42double(res));
+  printf("Overflow: %d\n", overflow);
+
+  // Multiplication
+  printf("\nMultiplication\n\n");
+
+  op1 = double2unum4(1.0, &failed);
+  op2 = double2unum4(2.0, &failed);
+
+  res = unum4_mul(op1, op2, &overflow, &underflow);
+
+  printf("Op1: %.16f (0x%08x) \n", op1, unum42double(op1));
+  printf("Op2: %.16f (0x%08x) \n", op2, unum42double(op2));
+  printf("Result: %.16f (0x%08x) \n", res, unum42double(res));
+  printf("Overflow: %d\n", overflow);
+  printf("Underflow: %d\n", underflow);
+
+  // Division
+  printf("\nDivision\n\n");
+
+  op1 = double2unum4(1.0, &failed);
+  op2 = double2unum4(2.0, &failed);
+
+  res = unum4_div(op1, op2, &overflow, &underflow, &div_by_zero);
+
+  printf("Op1: %.16f (0x%08x) \n", op1, unum42double(op1));
+  printf("Op2: %.16f (0x%08x) \n", op2, unum42double(op2));
+  printf("Result: %.16f (0x%08x) \n", res, unum42double(res));
+  printf("Overflow: %d\n", overflow);
+  printf("Underflow: %d\n", underflow);
+  printf("Div by zero: %d\n", div_by_zero);
+
+  return;
 }
 
 int main(int argc,char* argv[]){
-   uart_init(UART_BASE,FREQ/BAUD);
-   timer_init(TIMER_BASE);
-   ila_init(ILA_BASE);
+  uart_init(UART_BASE,FREQ/BAUD);
+  timer_init(TIMER_BASE);
+  ila_init(ILA_BASE);
 
-   printf("Init base modules\n");
+  printf("Init base modules\n");
 
-   versat_init(VERSAT_BASE);
+  versat_init(VERSAT_BASE);
 
-   // Addition
-   printf("\nAddition\n\n");
+  test_operations();
 
-   ACCEL_TOP_input_0_constant = 0xc0000001; // 1.0
-   ACCEL_TOP_input_1_constant = 0xa0000002; // 2.0
-   ACCEL_TOP_simple_op = 0;
+  uart_finish();
 
-   RunAccelerator(1);
-
-   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
-   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
-   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
-   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
-
-   // Subtraction
-   printf("\nSubtraction\n\n");
-
-   ACCEL_TOP_input_0_constant = 0xc0000001;
-   ACCEL_TOP_input_1_constant = 0xa0000002;
-   ACCEL_TOP_simple_op = 1;
-
-   RunAccelerator(1);
-
-   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
-   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
-   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
-   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
-
-   // Division
-   printf("\nDivision\n\n");
-
-   ACCEL_TOP_input_0_constant = 0xc0000001;
-   ACCEL_TOP_input_1_constant = 0xa0000002;
-   ACCEL_TOP_simple_op = 2;
-
-   RunAccelerator(1);
-
-   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
-   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
-   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
-   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
-
-   // Multiplication
-   printf("\nMultiplication\n\n");
-
-   ACCEL_TOP_input_0_constant = 0xc0000001;
-   ACCEL_TOP_input_1_constant = 0xa0000002;
-   ACCEL_TOP_simple_op = 3;
-
-   RunAccelerator(1);
-
-   printf("Result: 0x%08x\n",ACCEL_TOP_output_0_currentValue);
-   printf("Overflow: %d\n",ACCEL_TOP_simple_overflow);
-   printf("Underflow: %d\n",ACCEL_TOP_simple_underflow);
-   printf("Div by zero: %d\n",ACCEL_TOP_simple_div_by_zero);
-
-   uart_finish();
-
-   return 0;
+  return 0;
 }
 
 

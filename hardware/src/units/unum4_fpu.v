@@ -39,8 +39,7 @@ module fpu #(
    wire                                SUB = !op[1] & op[0];// & run;
    wire                                DIV = op[1] & !op[0];// & run;
    wire                                MUL = op[1] & op[0];// & run;
-   wire                                under_add, under_mult, over_add, over_mult, under_div, over_div,
-over_round, div_flag;
+   wire                                under_add, under_mult, over_add, over_mult, under_div, over_div, over_round, div_flag;
    wire                                unpack_a_start, unpack_b_start, add_start, div_start, mul_start, pack_start;
    wire                                unpack_a_done, unpack_b_done, add_done, div_done, mul_done, pack_done;
    wire [EXP_MAX_W-1:0]                e_a, e_b, e_add, e_mult, e_div;
@@ -198,9 +197,9 @@ over_round, div_flag;
       .over(over_round)
       );
 
-  assign       overflow = over_add | over_round | over_mult | over_div;
-  assign       underflow = under_add | under_mult | under_div;
-  assign       div_by_zero = div_flag;
+  assign overflow = over_add | over_round | over_mult | over_div;
+  assign underflow = under_add | under_mult | under_div;
+  assign div_by_zero = div_flag;
 
   assign e_o = DIV? e_div:
                MUL? e_mult:
