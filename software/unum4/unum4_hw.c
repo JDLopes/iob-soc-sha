@@ -4,12 +4,6 @@
 
 #include "unum4_hw.h"
 
-typedef struct {
-  int32_t exp;
-  int32_t man;
-  int32_t ew;
-  } Unum4Unpacked;
-
 //
 // Defines
 //
@@ -36,6 +30,8 @@ typedef struct {
 #define MAN_MAX ((1 << F_MIN_W) - 1)
 #define MAN_MIN (1 << F_MIN_W)
 
+#define RES_MAX_W (MAN_MAX_W+3)
+
 #define UNUM4_W 32
 
 // IEEE-754
@@ -51,17 +47,15 @@ typedef struct {
 #define FP_SP_F_W    23
 #define FP_SP_MAN_W  (FP_SP_F_W + 1)
 
-#define cleadings(num, width, inv) ({\
+#define cleadings(num, width) ({\
   int32_t num_ = num;\
   int32_t leadings = 0;\
 \
-  if (num_ <= 0 && inv)\
-    num_ = ~num_;\
+  if (num_ <= 0) num_ = ~num_;\
 \
   int32_t i;\
   for (i = 0; i < width; i++) {\
-    if ((num_ << i) & MSB(width-1))\
-      break;\
+    if ((num_ << i) & MSB(width-1)) break;\
     leadings++;\
   }\
 \
@@ -69,13 +63,11 @@ typedef struct {
 })
 
 #define cew(exp) ({\
-  int32_t ew;\
+  int32_t ew = 0;\
 \
   if (exp) {\
-    int32_t leadings = cleadings(exp, UNUM4_W, 1);\
+    int32_t leadings = cleadings(exp, UNUM4_W);\
     ew = UNUM4_W - leadings - 1;\
-  } else {\
-    ew = 0;\
   }\
 \
   ew;\
@@ -115,7 +107,7 @@ unum4 unum4_pack(Unum4Unpacked o, uint8_t *overflow) {
 
   int32_t ew = cew(exp);
 
-  int32_t shift = UNUM4_W - DATA_W + ew + EW_W - 1;
+  int32_t shift = ew + 3;
   int32_t man = o.man >> shift;
 
   int32_t man_lsb    = (o.man & (1 << shift))? 1: 0;
@@ -128,7 +120,7 @@ unum4 unum4_pack(Unum4Unpacked o, uint8_t *overflow) {
     man += round;
 
     if (man) {
-      int32_t leadings = cleadings(man, MAN_W(ew), 1);
+      int32_t leadings = cleadings(man, MAN_W(ew));
       exp -= leadings;
       man <<= leadings;
 
@@ -158,8 +150,9 @@ unum4 double2unum4(double input, uint8_t *failed) {
     int64_t i;
   } conv = { .d = input };
   Unum4Unpacked upk;
-  int32_t shift;
+  int32_t shift = 0;
   uint8_t overflow = 0;
+
   *failed = 0;
 
   // Fields extraction
@@ -168,23 +161,32 @@ unum4 double2unum4(double input, uint8_t *failed) {
   int64_t man = (uint64_t)(conv.i << (1 + FP_DP_EXP_W)) >> (FP_DP_DATA_W - FP_DP_F_W);
 
   if (!exp) { // Denormalized or Zero
+    exp -= FP_DP_BIAS;
     if (!man) {
+      exp = EXP_MIN;
       man_msb = 0;
     }
-    exp = EXP_MIN;
 
-    shift = FP_DP_MAN_W - UNUM4_W;
+    shift = FP_DP_MAN_W - RES_MAX_W;
   } else if (exp == ((1 << FP_DP_EXP_W) - 1)) { // Infinity or NAN
     *failed = 1;
   } else { // Normalized
     man |= MSB(FP_DP_MAN_W);
     exp -= FP_DP_BIAS - 1;
 
-    shift = FP_DP_MAN_W - UNUM4_W + 1;
+    shift = FP_DP_MAN_W - RES_MAX_W + 1;
   }
 
   if (man_msb) {
     man = -man;
+  }
+
+  if (exp < EXP_MIN) {
+    exp = EXP_MIN;
+    shift += EXP_MIN - exp;
+    if (shift > FP_DP_F_W) {
+      shift = FP_DP_F_W + 1;
+    }
   }
 
   int32_t sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
@@ -192,7 +194,7 @@ unum4 double2unum4(double input, uint8_t *failed) {
 
   if (exp <= EXP_MAX && exp > EXP_MIN) {
     if (man) {
-      int32_t leadings = cleadings(man, UNUM4_W, 1);
+      int32_t leadings = cleadings(man, RES_MAX_W);
       upk.exp = exp - leadings;
       upk.man = (man << leadings) | sticky;
     } else {
@@ -218,8 +220,9 @@ unum4 float2unum4(float input, uint8_t *failed) {
     int32_t i;
   } conv = { .f = input };
   Unum4Unpacked upk;
-  int32_t shift;
+  int32_t shift = 0;
   uint8_t overflow = 0;
+
   *failed = 0;
 
   // Fields extraction
@@ -228,23 +231,32 @@ unum4 float2unum4(float input, uint8_t *failed) {
   int32_t man = (uint32_t)(conv.i << (1 + FP_SP_EXP_W)) >> (FP_SP_DATA_W - FP_SP_F_W);
 
   if (!exp) { // Denormalized or Zero
+    exp -= FP_SP_BIAS;
     if (!man) {
+      exp = EXP_MIN;
       man_msb = 0;
     }
-    exp = EXP_MIN;
 
-    shift = FP_SP_MAN_W - UNUM4_W;
+    shift = FP_SP_MAN_W - RES_MAX_W;
   } else if (exp == ((1 << FP_SP_EXP_W) - 1)) { // Infinity or NAN
     *failed = 1;
   } else { // Normalized
     man |= MSB(FP_SP_MAN_W);
     exp -= FP_SP_BIAS - 1;
 
-    shift = FP_SP_MAN_W - UNUM4_W + 1;
+    shift = FP_SP_MAN_W - RES_MAX_W + 1;
   }
 
   if (man_msb) {
     man = -man;
+  }
+
+  if (exp < EXP_MIN) {
+    exp = EXP_MIN;
+    shift += EXP_MIN - exp;
+    if (shift > FP_SP_F_W) {
+      shift = FP_SP_F_W + 1;
+    }
   }
 
   int32_t sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
@@ -252,7 +264,7 @@ unum4 float2unum4(float input, uint8_t *failed) {
 
   if (exp <= EXP_MAX && exp > EXP_MIN) {
     if (man) {
-      int32_t leadings = cleadings(man, UNUM4_W, 1);
+      int32_t leadings = cleadings(man, RES_MAX_W);
       upk.exp = exp - leadings;
       upk.man = (man << leadings) | sticky;
     } else {
@@ -275,4 +287,25 @@ unum4 float2unum4(float input, uint8_t *failed) {
 double unum42double(unum4 input) {
   Unum4Unpacked upk = unum4_unpack(input);
   return (double)upk.man * pow(2, (upk.exp - DATA_W + EW_W + upk.ew));
+}
+
+int8_t unum4_compare(Unum4Unpacked a, Unum4Unpacked b) {
+  int8_t res;
+
+  a.man <<= a.ew;
+  b.man <<= b.ew;
+
+  if (a.exp > b.exp) {
+    res = 1;
+    if (a.man < 0) res = -1;
+  } else if (a.exp < b.exp) {
+    res = -1;
+    if (b.man < 0) res = 1;
+  } else {
+    res = 0;
+    if (a.man > b.man) res = 1;
+    else if (a.man < b.man) res = -1;
+  }
+
+  return res;
 }
