@@ -189,8 +189,14 @@ unum4 double2unum4(double input, uint8_t *failed) {
     }
   }
 
-  int32_t sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
-  man = (man >> shift) | sticky;
+  int32_t sticky = 0;
+  if (shift < 0) {
+    int32_t leadings = cleadings(man, RES_MAX_W);
+    man <<= leadings;
+  } else {
+    sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
+    man = (man >> shift) | sticky;
+  }
 
   if (exp <= EXP_MAX && exp > EXP_MIN) {
     if (man) {
@@ -259,8 +265,14 @@ unum4 float2unum4(float input, uint8_t *failed) {
     }
   }
 
-  int32_t sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
-  man = (man >> shift) | sticky;
+  int32_t sticky = 0;
+  if (shift < 0) {
+    int32_t leadings = cleadings(man, RES_MAX_W);
+    man <<= leadings;
+  } else {
+    sticky = (man & ((1 << (shift + 1)) - 1))? 1 : 0;
+    man = (man >> shift) | sticky;
+  }
 
   if (exp <= EXP_MAX && exp > EXP_MIN) {
     if (man) {
